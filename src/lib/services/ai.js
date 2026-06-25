@@ -18,6 +18,15 @@ export const AIService = {
       console.warn("MUAPIAPP_API_KEY is not configured. Running offline simulation.");
       const mockRequestId = `mock_${Math.random().toString(36).substring(2, 9)}`;
       
+      const customDataPayload = {
+        prompt: customParams.prompt !== undefined ? String(customParams.prompt) : "A happy group photo of the person in different outfits and settings standing together smiling, cinematic lighting, realistic, high detailed",
+        images_list: customParams.images_list !== undefined ? (Array.isArray(customParams.images_list) ? customParams.images_list : [customParams.images_list]) : [],
+        aspect_ratio: customParams.aspect_ratio !== undefined ? String(customParams.aspect_ratio) : "1:1",
+        google_search: customParams.google_search !== undefined ? (customParams.google_search === true || customParams.google_search === "true") : false,
+        resolution: customParams.resolution !== undefined ? String(customParams.resolution) : "1k",
+        output_format: customParams.output_format !== undefined ? String(customParams.output_format) : "jpg"
+      };
+
       const creation = await prisma.creation.create({
         data: {
           userId,
@@ -28,13 +37,8 @@ export const AIService = {
           resultImage: inputImage || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80",
           creditCost: cost,
           aspectRatio,
-        appId,
-          prompt: customParams.prompt !== undefined ? String(customParams.prompt) : "A happy group photo of the person in different outfits and settings standing together smiling, cinematic lighting, realistic, high detailed",
-          images_list: customParams.images_list !== undefined ? (Array.isArray(customParams.images_list) ? JSON.stringify(customParams.images_list) : String(customParams.images_list)) : "[]",
-          aspect_ratio: customParams.aspect_ratio !== undefined ? String(customParams.aspect_ratio) : "1:1",
-          google_search: customParams.google_search !== undefined ? (customParams.google_search === true || customParams.google_search === "true") : false,
-          resolution: customParams.resolution !== undefined ? String(customParams.resolution) : "1k",
-          output_format: customParams.output_format !== undefined ? String(customParams.output_format) : "jpg"
+          appId,
+          customData: JSON.stringify(customDataPayload)
         }
       });
       return { id: creation.id, resultImage: creation.resultImage, status: "completed" };
@@ -77,10 +81,18 @@ export const AIService = {
         ...customParams,
       };
     } else {
+      let sanitizedAspectRatio = aspectRatio || "1:1";
+      if (customParams.aspect_ratio) {
+        sanitizedAspectRatio = customParams.aspect_ratio;
+      }
+      if (sanitizedAspectRatio === "Auto" || !sanitizedAspectRatio) {
+        sanitizedAspectRatio = "1:1";
+      }
+
       bodyPayload = {
         prompt,
         images_list: inputImage ? [inputImage] : [],
-        aspect_ratio: aspectRatio || "1:1",
+        aspect_ratio: sanitizedAspectRatio,
         ...customParams,
         webhook: webhookUrl,
       };
@@ -114,6 +126,15 @@ export const AIService = {
     }
 
     // 3. Save initial record to database
+    const customDataPayload = {
+      prompt: customParams.prompt !== undefined ? String(customParams.prompt) : "A happy group photo of the person in different outfits and settings standing together smiling, cinematic lighting, realistic, high detailed",
+      images_list: customParams.images_list !== undefined ? (Array.isArray(customParams.images_list) ? customParams.images_list : [customParams.images_list]) : [],
+      aspect_ratio: customParams.aspect_ratio !== undefined ? String(customParams.aspect_ratio) : "1:1",
+      google_search: customParams.google_search !== undefined ? (customParams.google_search === true || customParams.google_search === "true") : false,
+      resolution: customParams.resolution !== undefined ? String(customParams.resolution) : "1k",
+      output_format: customParams.output_format !== undefined ? String(customParams.output_format) : "jpg"
+    };
+
     let creation = await prisma.creation.create({
       data: {
         userId,
@@ -124,12 +145,7 @@ export const AIService = {
         creditCost: cost,
         aspectRatio,
         appId,
-          prompt: customParams.prompt !== undefined ? String(customParams.prompt) : "A happy group photo of the person in different outfits and settings standing together smiling, cinematic lighting, realistic, high detailed",
-          images_list: customParams.images_list !== undefined ? (Array.isArray(customParams.images_list) ? JSON.stringify(customParams.images_list) : String(customParams.images_list)) : "[]",
-          aspect_ratio: customParams.aspect_ratio !== undefined ? String(customParams.aspect_ratio) : "1:1",
-          google_search: customParams.google_search !== undefined ? (customParams.google_search === true || customParams.google_search === "true") : false,
-          resolution: customParams.resolution !== undefined ? String(customParams.resolution) : "1k",
-          output_format: customParams.output_format !== undefined ? String(customParams.output_format) : "jpg"
+        customData: JSON.stringify(customDataPayload)
       }
     });
 
