@@ -7,6 +7,8 @@
 
 ![AI Group Photo Demo Interface](https://cdn.muapi.ai/data/2/403909915354/Screenshot_2026-06-01_182940.png)
 
+https://github.com/user-attachments/assets/48aab2e2-2e2a-4797-bb64-48f9004488ec
+
 ## 🌐 Project Details
 
 **GitHub Repository:** [github.com/SamurAIGPT/ai-group-photo](https://github.com/SamurAIGPT/ai-group-photo)
