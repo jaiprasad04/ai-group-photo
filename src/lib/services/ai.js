@@ -6,13 +6,16 @@ export const AIService = {
   /**
    * Submit a prediction job to MuAPI, deduct credits, and execute inline polling.
    */
-  async generate(userId, { prompt, inputImage, aspectRatio, modelEndpoint = "predictions", appId = null, creditCost = null, model = null, customParams = {} }) {
-    const cost = creditCost !== null ? Number(creditCost) : config.ai.generationCost;
+  async generate(userId, { prompt, inputImage, aspectRatio, modelEndpoint = "predictions", appId = null, creditCost = null, model = null, customParams = {}, customApiKey = null }) {
+    const isUsingCustomKey = Boolean(customApiKey && customApiKey.trim().length > 0);
+    const cost = isUsingCustomKey ? 0 : (creditCost !== null ? Number(creditCost) : config.ai.generationCost);
     
-    // 1. Deduct credits
-    await UserService.deductCredits(userId, cost);
+    // 1. Deduct credits (only if not using custom API Key)
+    if (!isUsingCustomKey && cost > 0) {
+      await UserService.deductCredits(userId, cost);
+    }
 
-    const apiKey = config.ai.apiKey;
+    const apiKey = isUsingCustomKey ? customApiKey.trim() : config.ai.apiKey;
     if (!apiKey) {
       // Return local mock generation in development if API key is missing
       console.warn("MUAPIAPP_API_KEY is not configured. Running offline simulation.");
@@ -112,8 +115,10 @@ export const AIService = {
     });
 
     if (!response.ok) {
-      // Refund credits on submission error
-      await UserService.addCredits(userId, cost);
+      // Refund credits on submission error if credits were deducted
+      if (!isUsingCustomKey && cost > 0) {
+        await UserService.addCredits(userId, cost);
+      }
       const errorText = await response.text();
       throw new Error(`API submission failed: ${response.status} ${errorText}`);
     }
@@ -121,7 +126,9 @@ export const AIService = {
     const responseJson = await response.json();
     const requestId = responseJson.request_id || responseJson.id;
     if (!requestId) {
-      await UserService.addCredits(userId, cost);
+      if (!isUsingCustomKey && cost > 0) {
+        await UserService.addCredits(userId, cost);
+      }
       throw new Error("No request_id returned from MUAPI");
     }
 
@@ -200,7 +207,7 @@ export const AIService = {
       }
     }
 
-    return { id: creation.id, resultImage: creation.resultImage, status: creation.status };
+    return creation;
   },
 
   /**
